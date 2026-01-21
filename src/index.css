@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Smooth theme transitions */
+* {
+  transition: var(--theme-transition, none);
+}
+
+/* Ensure smooth transitions for common elements */
+body,
+.bg-white,
+.dark\:bg-gray-800,
+.bg-gray-50,
+.dark\:bg-gray-900,
+.text-gray-900,
+.dark\:text-white,
+.text-gray-600,
+.dark\:text-gray-400,
+.border-gray-200,
+.dark\:border-gray-700 {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Smooth toggle switch animation */
+.theme-toggle {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-toggle-thumb {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
