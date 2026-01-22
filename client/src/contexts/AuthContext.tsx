@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { login as apiLogin, getMe as apiGetMe, logout as apiLogout } from '../api/client';
 
 // Define interfaces
 interface User {
   id: string;
   email: string;
   username: string;
-  avatar?: string;
-  isVerified: boolean;
+  role: string;
+  is_verified: boolean;
+  created_at: string;
 }
 
 interface CartItem {
@@ -131,7 +133,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [requiresVerification, setRequiresVerification] = useState(false);
 
-  // Initialize data from localStorage
+  // Initialize data from localStorage and check authentication
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
     const savedListings = localStorage.getItem('userListings');
@@ -140,8 +142,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const savedCart = localStorage.getItem('cart');
     const savedWishlist = localStorage.getItem('wishlist');
     const savedGlobalProducts = localStorage.getItem('globalProducts');
+    const token = localStorage.getItem('auth_token');
 
-    if (savedUser) setUser(JSON.parse(savedUser));
+    // If we have a token but no user data, try to fetch user data
+    if (token && !savedUser) {
+      apiGetMe()
+        .then(currentUser => {
+          setUser(currentUser);
+        })
+        .catch(error => {
+          console.error('Failed to fetch user data:', error);
+          // Token might be invalid, clear it
+          apiLogout();
+        });
+    } else if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+
     if (savedListings) setUserListings(JSON.parse(savedListings));
     if (savedPurchases) setPurchases(JSON.parse(savedPurchases));
     if (savedReviews) setReviews(JSON.parse(savedReviews));
@@ -402,16 +419,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [allProducts]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Mock login logic
-    const mockUser: User = {
-      id: '1',
-      email,
-      username: email.split('@')[0],
-      isVerified: true
-    };
-    setUser(mockUser);
-    localStorage.setItem('user', JSON.stringify(mockUser));
-    return true;
+    try {
+      // Call API to login and get token
+      const userData = await apiLogin(email, password);
+
+      // Fetch current user data
+      const currentUser = await apiGetMe();
+
+      // Update user state
+      setUser(currentUser);
+
+      return true;
+    } catch (error) {
+      console.error('Login failed:', error);
+      return false;
+    }
   };
 
   const signup = async (email: string, password: string, name: string): Promise<boolean> => {
@@ -428,6 +450,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = () => {
+    // Call API to clear token
+    apiLogout();
+
+    // Clear user state
     setUser(null);
     setCart([]);
     setWishlist([]);
