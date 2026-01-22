@@ -5,6 +5,7 @@ import { PrismaClient } from '../generated/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import authRoutes from './modules/auth/auth.routes';
+import userRoutes from './modules/users/users.routes';
 
 // Load environment variables
 dotenv.config();
@@ -32,6 +33,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
 // Basic health check
 app.get('/api/health', (req, res) => {
