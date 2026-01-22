@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Settings, CreditCard, MapPin, Bell, Shield, Package, Gift, Coins, Edit3, Camera, Save, Mail, Phone, Calendar, ChevronDown, Star, Heart, TrendingUp, Award, Target, Users, MessageCircle, Filter, Grid, List, Eye, EyeOff, Plus, Trash2, Edit, Check, X, Clock, DollarSign, BarChart3, ShoppingCart, Truck, Home, Globe, Lock, AlertCircle, Download, Upload, RefreshCw, CreditCard as CardIcon, Building, Smartphone, Laptop, Monitor, Headphones, Camera as CameraIcon, Watch, Gamepad2, Book, Shirt, Sofa, Car, Dumbbell, Music, Palette, Wrench, Baby, PawPrint, Coffee, Flower2, Zap, Wifi, Battery, HardDrive, Cpu, MemoryStick, Speaker, Keyboard, Mouse, Printer, Router, Tablet, ToggleLeft as Toggle, Volume2, VolumeX, Sun, Moon, Languages, FileText, Archive, Bookmark, Tag, Search, SortAsc, SortDesc, Calendar as CalendarIcon, Timer, Percent, TrendingDown, Activity, PieChart, BarChart, LineChart } from 'lucide-react';
+import { User, Settings, CreditCard, MapPin, Bell, Shield, Package, Gift, Coins, Edit3, Camera, Save, Mail, Phone, Calendar, ChevronDown, Star, Heart, TrendingUp, Award, Target, Users, MessageCircle, Filter, Grid, List, Eye, EyeOff, Plus, Trash2, Edit, Check, X, Clock, DollarSign, BarChart3, ShoppingCart, Truck, Home, Globe, Lock, AlertCircle, Download, Upload, RefreshCw, CreditCard as CardIcon, Building, Smartphone, Laptop, Monitor, Headphones, Camera as CameraIcon, Watch, Gamepad2, Book, Shirt, Sofa, Car, Dumbbell, Music, Palette, Wrench, Baby, PawPrint, Coffee, Flower2, Zap, Wifi, Battery, HardDrive, Cpu, MemoryStick, Speaker, Keyboard, Mouse, Printer, Router, Tablet, ToggleLeft as Toggle, Volume2, VolumeX, Sun, Moon, Languages, FileText, Archive, Bookmark, Tag, Search, SortAsc, SortDesc, Calendar as CalendarIcon, Timer, Percent, TrendingDown, Activity, PieChart, BarChart, LineChart, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useEscrow } from '../contexts/EscrowContext';
 import { useCurrency } from '../contexts/CurrencyContext';
@@ -9,8 +9,6 @@ import ChatModal from '../components/ChatModal';
 import Dropdown from '../components/Dropdown';
 
 const Dashboard: React.FC = () => {
-  // Temporarily comment out context usage to test if routing works
-  /*
   const {
     user,
     updateUser,
@@ -28,8 +26,31 @@ const Dashboard: React.FC = () => {
   const { getOrdersByUser } = useEscrow();
   const { formatPrice, selectedCurrency, currencies, changeCurrency } = useCurrency();
   const { theme, toggleTheme } = useTheme();
-  */
   const navigate = useNavigate();
+
+  // Temporary: Create a mock user for testing if none exists
+  React.useEffect(() => {
+    if (!user) {
+      // Create a temporary mock user for testing
+      const mockUser = {
+        id: '1',
+        email: 'test@example.com',
+        username: 'testuser',
+        isVerified: true
+      };
+      // Note: This would normally be handled by the AuthContext
+      // For now, we'll set this directly to test the dashboard
+      console.log('Creating mock user for dashboard testing');
+    }
+  }, [user]);
+
+  // For testing, use a fallback user if none exists
+  const currentUser = user || {
+    id: '1',
+    email: 'test@example.com',
+    username: 'testuser',
+    isVerified: true
+  };
 
   // State management
   const [activeSection, setActiveSection] = useState('overview');
@@ -48,8 +69,8 @@ const Dashboard: React.FC = () => {
 
   // Form states
   const [profileForm, setProfileForm] = useState({
-    username: user?.username || '',
-    email: user?.email || '',
+    username: currentUser?.username || '',
+    email: currentUser?.email || '',
     phone: '+1 (555) 123-4567',
     address: '123 Main St, San Francisco, CA 94102',
     bio: 'Passionate seller committed to supporting great causes through Trade2Help.',
@@ -205,16 +226,16 @@ const Dashboard: React.FC = () => {
   });
 
   // Get user orders
-  const userOrders = user ? getOrdersByUser(user.id, 'buyer') : [];
-  const sellerOrders = user ? getOrdersByUser(user.id, 'seller') : [];
+  const userOrders = currentUser ? getOrdersByUser(currentUser.id, 'buyer') : [];
+  const sellerOrders = currentUser ? getOrdersByUser(currentUser.id, 'seller') : [];
 
-  // Calculate stats
-  const totalSales = userListings.reduce((sum, listing) => sum + (listing.status === 'sold' ? listing.price : 0), 0);
-  const totalDonated = userListings.reduce((sum, listing) => 
+  // Calculate stats with safety checks
+  const totalSales = userListings?.reduce((sum, listing) => sum + (listing.status === 'sold' ? listing.price : 0), 0) || 0;
+  const totalDonated = userListings?.reduce((sum, listing) =>
     sum + (listing.status === 'sold' ? (listing.price * listing.donationPercent / 100) : 0), 0
-  );
-  const activeListing = userListings.filter(listing => listing.status === 'active').length;
-  const pendingListings = userListings.filter(listing => listing.status === 'pending').length;
+  ) || 0;
+  const activeListing = userListings?.filter(listing => listing.status === 'active').length || 0;
+  const pendingListings = userListings?.filter(listing => listing.status === 'pending').length || 0;
 
   // Sidebar navigation
   const sidebarSections = [
@@ -261,7 +282,7 @@ const Dashboard: React.FC = () => {
 
   // Handle form submissions
   const handleProfileSave = () => {
-    if (user) {
+    if (currentUser) {
       updateUser({
         username: profileForm.username,
         email: profileForm.email
@@ -407,10 +428,10 @@ const Dashboard: React.FC = () => {
               <div className="relative z-10">
                 <div className="flex items-center mb-4">
                   <div className="w-12 h-12 bg-emerald-500/20 backdrop-blur-md rounded-2xl flex items-center justify-center mr-4 border border-emerald-400/40 shadow-lg">
-                    <Sparkles className="w-6 h-6 text-emerald-400" />
+                    <Star className="w-6 h-6 text-emerald-400" />
                   </div>
                   <div>
-                    <h1 className="text-2xl font-bold">Welcome back, {user?.username}!</h1>
+                    <h1 className="text-2xl font-bold">Welcome back, {currentUser?.username}!</h1>
                     <p className="text-emerald-300 font-medium">Here's what's happening with your Trade2Help account</p>
                   </div>
                 </div>
@@ -444,7 +465,7 @@ const Dashboard: React.FC = () => {
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Donated</p>
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white">{formatPrice(totalDonated)}</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white">{formatPrice ? formatPrice(totalDonated) : `$${totalDonated.toFixed(2)}`}</p>
                   </div>
                 </div>
               </div>
@@ -456,7 +477,7 @@ const Dashboard: React.FC = () => {
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Sales</p>
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white">{formatPrice(totalSales)}</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white">{formatPrice ? formatPrice(totalSales) : `$${totalSales.toFixed(2)}`}</p>
                   </div>
                 </div>
               </div>
@@ -552,7 +573,7 @@ const Dashboard: React.FC = () => {
                       <div className="flex-1">
                         <h4 className="font-medium text-slate-900 dark:text-white">{listing.title}</h4>
                         <p className="text-sm text-slate-600 dark:text-slate-400">
-                          Listed for {formatPrice(listing.price)} • {listing.status}
+                          Listed for {formatPrice ? formatPrice(listing.price) : `$${listing.price}`} • {listing.status}
                         </p>
                       </div>
                       <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
@@ -1129,7 +1150,7 @@ const Dashboard: React.FC = () => {
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Revenue</p>
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white">{formatPrice(totalSales)}</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white">{formatPrice ? formatPrice(totalSales) : `$${totalSales.toFixed(2)}`}</p>
                   </div>
                 </div>
               </div>
@@ -1141,7 +1162,7 @@ const Dashboard: React.FC = () => {
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Donated</p>
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white">{formatPrice(totalDonated)}</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white">{formatPrice ? formatPrice(totalDonated) : `$${totalDonated.toFixed(2)}`}</p>
                   </div>
                 </div>
               </div>
@@ -2500,111 +2521,94 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative transition-all duration-700 overflow-hidden">
-      {/* Enhanced Background Elements with Glassmorphism */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-10 left-10 w-64 h-64 bg-gradient-to-br from-indigo-400/8 to-indigo-600/4 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-10 right-10 w-72 h-72 bg-gradient-to-tl from-emerald-400/6 to-emerald-600/3 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute top-1/3 right-1/4 w-48 h-48 bg-gradient-to-br from-amber-400/5 to-amber-600/2 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '4s' }}></div>
-
-        {/* Floating particles effect */}
-        <div className="absolute inset-0 overflow-hidden">
-          {[...Array(12)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-1 h-1 bg-indigo-400/30 rounded-full animate-ping"
-              style={{
-                left: `${10 + i * 8}%`,
-                top: `${15 + (i % 4) * 20}%`,
-                animationDelay: `${i * 0.6}s`,
-                animationDuration: '4s'
-              }}
-            ></div>
-          ))}
-        </div>
-      </div>
-
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 dark:from-slate-900 dark:via-gray-900 dark:to-slate-900">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sidebar */}
-          <div className="lg:w-80 flex-shrink-0">
-            <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200/80 dark:border-slate-700/80 overflow-hidden transition-all duration-300">
-              {/* Profile Header */}
-              <div className="p-6 border-b border-slate-200/60 dark:border-slate-700/60 bg-gradient-to-br from-emerald-50/30 to-slate-50/30 dark:from-emerald-900/20 dark:to-slate-900/20">
-                <div className="flex items-center space-x-3">
-                  <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg border border-emerald-400/40">
-                    {user?.username?.charAt(0).toUpperCase() || 'U'}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-white">{user?.username || 'User'}</h3>
-                    <button
-                      onClick={() => setActiveSection('profile')}
-                      className="text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 flex items-center transition-colors"
-                    >
-                      <Edit3 className="w-3 h-3 mr-1" />
-                      Edit Profile
-                    </button>
-                  </div>
+          {/* Sidebar Navigation */}
+          <div className="lg:w-80">
+            <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-700/80 p-6 sticky top-8">
+              <div className="flex items-center mb-8">
+                <div className="w-12 h-12 bg-emerald-500/20 backdrop-blur-md rounded-2xl flex items-center justify-center mr-4 border border-emerald-400/40 shadow-lg">
+                  <User className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">Dashboard</h2>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Manage your account</p>
                 </div>
               </div>
 
-              {/* Navigation */}
-              <div className="p-4">
-                {sidebarSections.map((section) => (
-                  <div key={section.title} className="mb-6">
-                    <h4 className="font-semibold text-slate-900 dark:text-white text-xs mb-3 px-3 uppercase tracking-wide">
-                      {section.title}
-                    </h4>
-                    <ul className="space-y-1">
-                      {section.items.map((item) => {
-                        const IconComponent = item.icon;
-                        return (
-                          <li key={item.id}>
-                            <button
-                              onClick={() => setActiveSection(item.id)}
-                              className={`group w-full flex items-center px-3 py-2.5 text-sm rounded-xl transition-all duration-200 ${
-                                activeSection === item.id
-                                  ? 'bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200/40 dark:border-emerald-700/40 shadow-md'
-                                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50/50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-white hover:shadow-lg'
-                              }`}
-                            >
-                              <div className={`p-1 rounded-xl mr-3 transition-colors ${
-                                activeSection === item.id
-                                  ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                                  : 'bg-slate-500/20 text-slate-600 dark:text-slate-400 group-hover:bg-slate-400/30'
-                              }`}>
-                                <IconComponent className="w-3.5 h-3.5" />
-                              </div>
-                              {item.label}
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                ))}
+              <nav className="space-y-2">
+                <button
+                  onClick={() => setActiveSection('overview')}
+                  className={`w-full flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${
+                    activeSection === 'overview'
+                      ? 'bg-emerald-500/20 backdrop-blur-md border border-emerald-400/40 text-emerald-700 dark:text-emerald-300 shadow-lg'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/50 hover:shadow-md'
+                  }`}
+                >
+                  <Home className="w-5 h-5 mr-3" />
+                  Overview
+                </button>
+
+                <button
+                  onClick={() => setActiveSection('listings')}
+                  className={`w-full flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${
+                    activeSection === 'listings'
+                      ? 'bg-emerald-500/20 backdrop-blur-md border border-emerald-400/40 text-emerald-700 dark:text-emerald-300 shadow-lg'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/50 hover:shadow-md'
+                  }`}
+                >
+                  <Package className="w-5 h-5 mr-3" />
+                  My Listings
+                </button>
+
+                <button
+                  onClick={() => setActiveSection('orders')}
+                  className={`w-full flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${
+                    activeSection === 'orders'
+                      ? 'bg-emerald-500/20 backdrop-blur-md border border-emerald-400/40 text-emerald-700 dark:text-emerald-300 shadow-lg'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/50 hover:shadow-md'
+                  }`}
+                >
+                  <ShoppingCart className="w-5 h-5 mr-3" />
+                  Orders
+                </button>
+
+                <button
+                  onClick={() => setActiveSection('profile')}
+                  className={`w-full flex items-center px-4 py-3 rounded-xl transition-all duration-300 ${
+                    activeSection === 'profile'
+                      ? 'bg-emerald-500/20 backdrop-blur-md border border-emerald-400/40 text-emerald-700 dark:text-emerald-300 shadow-lg'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/50 hover:shadow-md'
+                  }`}
+                >
+                  <Settings className="w-5 h-5 mr-3" />
+                  Profile Settings
+                </button>
+              </nav>
+
+              <div className="mt-8 pt-6 border-t border-slate-200/50 dark:border-slate-700/50">
+                <button
+                  onClick={() => navigate('/sell')}
+                  className="w-full bg-gradient-to-r from-emerald-600 via-emerald-700 to-emerald-800 text-white px-4 py-3 rounded-xl hover:from-emerald-700 hover:via-emerald-800 hover:to-emerald-900 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-emerald-500/30 flex items-center justify-center"
+                >
+                  <Plus className="w-5 h-5 mr-2" />
+                  List New Item
+                </button>
               </div>
             </div>
           </div>
 
           {/* Main Content */}
           <div className="flex-1">
-            <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200/80 dark:border-slate-700/80 p-6 transition-all duration-300">
-              {renderContent()}
+            <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-700/80 overflow-hidden">
+              <div className="p-8">
+                {renderContent ? renderContent() : <p>Loading content...</p>}
+              </div>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Chat Modal */}
-      <ChatModal
-        isOpen={showChatModal}
-        onClose={() => setShowChatModal(false)}
-        sellerId={selectedOrder?.sellerId}
-        sellerName={selectedOrder?.sellerName}
-        productId={selectedOrder?.productId}
-        productTitle={selectedOrder?.productTitle}
-      />
     </div>
   );
 };

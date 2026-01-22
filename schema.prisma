@@ -1,0 +1,338 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUM TYPES
+// ============================================
+
+enum UserRole {
+  user
+  admin
+}
+
+enum ProductCondition {
+  new
+  used
+}
+
+enum ProductStatus {
+  draft
+  active
+  sold
+}
+
+enum OrderStatus {
+  pending
+  paid
+  shipped
+  completed
+  cancelled
+}
+
+enum EscrowStatus {
+  held
+  released
+  refunded
+}
+
+enum ShipmentStatus {
+  pending
+  in_transit
+  delivered
+}
+
+enum DisputeStatus {
+  open
+  resolved
+  rejected
+}
+
+enum MediaType {
+  image
+  video
+}
+
+enum CarouselType {
+  image
+  text
+}
+
+// ============================================
+// MODELS
+// ============================================
+
+model User {
+  id            String   @id @default(uuid()) @db.Uuid
+  email         String   @unique
+  username      String   @unique
+  password_hash String
+  role          UserRole @default(user)
+  is_verified   Boolean  @default(false)
+  created_at    DateTime @default(now()) @db.Timestamptz
+
+  // Relations
+  products_as_seller  Product[]    @relation("seller")
+  orders_as_buyer     Order[]      @relation("buyer")
+  reviews             Review[]
+  conversations_user_one Conversation[] @relation("user_one")
+  conversations_user_two Conversation[] @relation("user_two")
+  sent_messages       Message[]
+
+  @@map("users")
+}
+
+model Category {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  description String?
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now()) @db.Timestamptz
+
+  // Relations
+  products Product[]
+
+  @@map("categories")
+}
+
+model Charity {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  description  String?
+  website      String?
+  is_active    Boolean  @default(true)
+  created_at   DateTime @default(now()) @db.Timestamptz
+
+  // Relations
+  products Product[]
+  donations Donation[]
+
+  @@map("charities")
+}
+
+model Product {
+  id                String           @id @default(uuid()) @db.Uuid
+  title             String
+  description       String?
+  price             Decimal          @db.Decimal(10, 2)
+  condition         ProductCondition?
+  status            ProductStatus    @default(draft)
+
+  seller_id         String           @db.Uuid
+  category_id       String           @db.Uuid
+  charity_id        String?          @db.Uuid
+  donation_percent  Decimal?         @db.Decimal(5, 2)
+
+  created_at        DateTime         @default(now()) @db.Timestamptz
+
+  // Relations
+  seller            User             @relation("seller", fields: [seller_id], references: [id], onDelete: Cascade)
+  category          Category         @relation(fields: [category_id], references: [id])
+  charity           Charity?         @relation(fields: [charity_id], references: [id])
+
+  product_images    ProductImage[]
+  order_items       OrderItem[]
+  reviews           Review[]
+  conversations     Conversation[]
+
+  @@map("products")
+}
+
+model ProductImage {
+  id         String  @id @default(uuid()) @db.Uuid
+  product_id String  @db.Uuid
+  image_url  String
+  position   Int     @default(0)
+
+  // Relations
+  product    Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@map("product_images")
+}
+
+model Order {
+  id         String      @id @default(uuid()) @db.Uuid
+  buyer_id   String      @db.Uuid
+  status     OrderStatus @default(pending)
+  created_at DateTime    @default(now()) @db.Timestamptz
+
+  // Relations
+  buyer      User        @relation("buyer", fields: [buyer_id], references: [id])
+
+  order_items OrderItem[]
+  escrow      Escrow?
+  shipment    Shipment?
+  dispute     Dispute?
+  review      Review?
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id                        String   @id @default(uuid()) @db.Uuid
+  order_id                  String   @db.Uuid
+  product_id                String   @db.Uuid
+  price_snapshot            Decimal  @db.Decimal(10, 2)
+  donation_percent_snapshot Decimal? @db.Decimal(5, 2)
+
+  // Relations
+  order    Order   @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  product  Product @relation(fields: [product_id], references: [id])
+
+  donation Donation?
+
+  @@map("order_items")
+}
+
+model Donation {
+  id            String  @id @default(uuid()) @db.Uuid
+  order_item_id String  @db.Uuid
+  charity_id    String  @db.Uuid
+  amount        Decimal @db.Decimal(10, 2)
+  created_at    DateTime @default(now()) @db.Timestamptz
+
+  // Relations
+  order_item OrderItem @relation(fields: [order_item_id], references: [id])
+  charity    Charity   @relation(fields: [charity_id], references: [id])
+
+  @@map("donations")
+}
+
+model Escrow {
+  id          String       @id @default(uuid()) @db.Uuid
+  order_id    String       @unique @db.Uuid
+  status      EscrowStatus @default(held)
+  created_at  DateTime     @default(now()) @db.Timestamptz
+  released_at DateTime?    @db.Timestamptz
+
+  // Relations
+  order Order @relation(fields: [order_id], references: [id])
+
+  @@map("escrows")
+}
+
+model Shipment {
+  id             String         @id @default(uuid()) @db.Uuid
+  order_id       String         @unique @db.Uuid
+  carrier        String?
+  tracking_number String?        @unique
+  status         ShipmentStatus?
+  created_at     DateTime       @default(now()) @db.Timestamptz
+
+  // Relations
+  order Order @relation(fields: [order_id], references: [id])
+
+  shipment_events ShipmentEvent[]
+
+  @@map("shipments")
+}
+
+model ShipmentEvent {
+  id           String   @id @default(uuid()) @db.Uuid
+  shipment_id  String   @db.Uuid
+  status       String
+  location     String?
+  occurred_at  DateTime @default(now()) @db.Timestamptz
+
+  // Relations
+  shipment Shipment @relation(fields: [shipment_id], references: [id], onDelete: Cascade)
+
+  @@map("shipment_events")
+}
+
+model Dispute {
+  id          String        @id @default(uuid()) @db.Uuid
+  order_id    String        @unique @db.Uuid
+  reason      String
+  description String?
+  status      DisputeStatus @default(open)
+  created_at  DateTime      @default(now()) @db.Timestamptz
+
+  // Relations
+  order Order @relation(fields: [order_id], references: [id])
+
+  dispute_media DisputeMedia[]
+
+  @@map("disputes")
+}
+
+model DisputeMedia {
+  id          String    @id @default(uuid()) @db.Uuid
+  dispute_id  String    @db.Uuid
+  media_type  MediaType
+  media_url   String
+
+  // Relations
+  dispute Dispute @relation(fields: [dispute_id], references: [id], onDelete: Cascade)
+
+  @@map("dispute_media")
+}
+
+model Review {
+  id           String   @id @default(uuid()) @db.Uuid
+  order_id     String   @unique @db.Uuid
+  product_id   String   @db.Uuid
+  reviewer_id  String   @db.Uuid
+  rating       Int
+  comment      String?
+  created_at   DateTime @default(now()) @db.Timestamptz
+
+  // Relations
+  order    Order   @relation(fields: [order_id], references: [id])
+  product  Product @relation(fields: [product_id], references: [id])
+  reviewer User    @relation(fields: [reviewer_id], references: [id])
+
+  @@unique([order_id])
+  @@map("reviews")
+}
+
+model Conversation {
+  id         String    @id @default(uuid()) @db.Uuid
+  user_one   String    @db.Uuid
+  user_two   String    @db.Uuid
+  product_id String?   @db.Uuid
+  created_at DateTime  @default(now()) @db.Timestamptz
+
+  // Relations
+  userOne User @relation("user_one", fields: [user_one], references: [id])
+  userTwo User @relation("user_two", fields: [user_two], references: [id])
+  product  Product? @relation(fields: [product_id], references: [id])
+
+  messages Message[]
+
+  @@map("conversations")
+}
+
+model Message {
+  id               String    @id @default(uuid()) @db.Uuid
+  conversation_id  String    @db.Uuid
+  sender_id        String    @db.Uuid
+  content          String
+  is_read          Boolean   @default(false)
+  sent_at          DateTime  @default(now()) @db.Timestamptz
+
+  // Relations
+  conversation Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [sender_id], references: [id])
+
+  @@map("messages")
+}
+
+model CarouselSlide {
+  id         String       @id @default(uuid()) @db.Uuid
+  title      String?
+  content    String?
+  type       CarouselType?
+  is_active  Boolean      @default(true)
+  created_at DateTime     @default(now()) @db.Timestamptz
+
+  @@map("carousel_slides")
+}

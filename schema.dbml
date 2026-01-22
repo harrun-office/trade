@@ -1,0 +1,263 @@
+// Trade2Help Database Schema - dbdiagram.io format
+
+// ============================================
+// ENUM TYPES
+// ============================================
+
+enum user_role {
+  "user"
+  "admin"
+}
+
+enum product_condition {
+  "new"
+  "used"
+}
+
+enum product_status {
+  "draft"
+  "active"
+  "sold"
+}
+
+enum order_status {
+  "pending"
+  "paid"
+  "shipped"
+  "completed"
+  "cancelled"
+}
+
+enum escrow_status {
+  "held"
+  "released"
+  "refunded"
+}
+
+enum shipment_status {
+  "pending"
+  "in_transit"
+  "delivered"
+}
+
+enum dispute_status {
+  "open"
+  "resolved"
+  "rejected"
+}
+
+enum media_type {
+  "image"
+  "video"
+}
+
+enum carousel_type {
+  "image"
+  "text"
+}
+
+// ============================================
+// TABLES
+// ============================================
+
+Table users {
+  id uuid [primary key, default: `uuid_generate_v4()`]
+  email text [not null, unique]
+  username text [not null, unique]
+  password_hash text [not null]
+  role user_role [not null, default: 'user']
+  is_verified boolean [default: false]
+  created_at timestamptz [default: `NOW()`]
+}
+
+Table categories {
+  id uuid [primary key, default: `uuid_generate_v4()`]
+  name text [not null, unique]
+  description text
+  is_active boolean [default: true]
+  created_at timestamptz [default: `NOW()`]
+}
+
+Table charities {
+  id uuid [primary key, default: `uuid_generate_v4()`]
+  name text [not null]
+  description text
+  website text
+  is_active boolean [default: true]
+  created_at timestamptz [default: `NOW()`]
+}
+
+Table products {
+  id uuid [primary key, default: `uuid_generate_v4()`]
+  title text [not null]
+  description text
+  price numeric(10,2) [not null]
+  condition product_condition
+  status product_status [default: 'draft']
+
+  seller_id uuid [not null]
+  category_id uuid [not null]
+  charity_id uuid
+  donation_percent numeric(5,2) [check: donation_percent BETWEEN 0 AND 100]
+
+  created_at timestamptz [default: `NOW()`]
+}
+
+Table product_images {
+  id uuid [primary key, default: `uuid_generate_v4()`]
+  product_id uuid [not null]
+  image_url text [not null]
+  position integer [default: 0]
+}
+
+Table orders {
+  id uuid [primary key, default: `uuid_generate_v4()`]
+  buyer_id uuid [not null]
+  status order_status [default: 'pending']
+  created_at timestamptz [default: `NOW()`]
+}
+
+Table order_items {
+  id uuid [primary key, default: `uuid_generate_v4()`]
+  order_id uuid [not null]
+  product_id uuid [not null]
+  price_snapshot numeric(10,2) [not null]
+  donation_percent_snapshot numeric(5,2)
+}
+
+Table donations {
+  id uuid [primary key, default: `uuid_generate_v4()`]
+  order_item_id uuid [not null]
+  charity_id uuid [not null]
+  amount numeric(10,2) [not null]
+  created_at timestamptz [default: `NOW()`]
+}
+
+Table escrows {
+  id uuid [primary key, default: `uuid_generate_v4()`]
+  order_id uuid [not null, unique]
+  status escrow_status [default: 'held']
+  created_at timestamptz [default: `NOW()`]
+  released_at timestamptz
+}
+
+Table shipments {
+  id uuid [primary key, default: `uuid_generate_v4()`]
+  order_id uuid [not null, unique]
+  carrier text
+  tracking_number text [unique]
+  status shipment_status
+  created_at timestamptz [default: `NOW()`]
+}
+
+Table shipment_events {
+  id uuid [primary key, default: `uuid_generate_v4()`]
+  shipment_id uuid [not null]
+  status text
+  location text
+  occurred_at timestamptz [default: `NOW()`]
+}
+
+Table disputes {
+  id uuid [primary key, default: `uuid_generate_v4()`]
+  order_id uuid [not null, unique]
+  reason text [not null]
+  description text
+  status dispute_status [default: 'open']
+  created_at timestamptz [default: `NOW()`]
+}
+
+Table dispute_media {
+  id uuid [primary key, default: `uuid_generate_v4()`]
+  dispute_id uuid [not null]
+  media_type media_type [not null]
+  media_url text [not null]
+}
+
+Table reviews {
+  id uuid [primary key, default: `uuid_generate_v4()`]
+  order_id uuid [not null, unique]
+  product_id uuid [not null]
+  reviewer_id uuid [not null]
+  rating integer [check: rating BETWEEN 1 AND 5]
+  comment text
+  created_at timestamptz [default: `NOW()`]
+}
+
+Table conversations {
+  id uuid [primary key, default: `uuid_generate_v4()`]
+  user_one uuid [not null]
+  user_two uuid [not null]
+  product_id uuid
+  created_at timestamptz [default: `NOW()`]
+}
+
+Table messages {
+  id uuid [primary key, default: `uuid_generate_v4()`]
+  conversation_id uuid [not null]
+  sender_id uuid [not null]
+  content text [not null]
+  is_read boolean [default: false]
+  sent_at timestamptz [default: `NOW()`]
+}
+
+Table carousel_slides {
+  id uuid [primary key, default: `uuid_generate_v4()`]
+  title text
+  content text
+  type carousel_type
+  is_active boolean [default: true]
+  created_at timestamptz [default: `NOW()`]
+}
+
+// ============================================
+// RELATIONSHIPS
+// ============================================
+
+// Products relationships
+Ref: products.seller_id > users.id [delete: cascade]
+Ref: products.category_id > categories.id
+Ref: products.charity_id > charities.id
+
+// Product images relationship
+Ref: product_images.product_id > products.id [delete: cascade]
+
+// Orders relationships
+Ref: orders.buyer_id > users.id
+
+// Order items relationships
+Ref: order_items.order_id > orders.id [delete: cascade]
+Ref: order_items.product_id > products.id
+
+// Donations relationships
+Ref: donations.order_item_id > order_items.id
+Ref: donations.charity_id > charities.id
+
+// Escrow relationship
+Ref: escrows.order_id > orders.id
+
+// Shipment relationships
+Ref: shipments.order_id > orders.id
+
+// Shipment events relationship
+Ref: shipment_events.shipment_id > shipments.id [delete: cascade]
+
+// Dispute relationship
+Ref: disputes.order_id > orders.id
+
+// Dispute media relationship
+Ref: dispute_media.dispute_id > disputes.id [delete: cascade]
+
+// Reviews relationships
+Ref: reviews.order_id > orders.id
+Ref: reviews.product_id > products.id
+Ref: reviews.reviewer_id > users.id
+
+// Conversations relationships
+Ref: conversations.user_one > users.id
+Ref: conversations.user_two > users.id
+Ref: conversations.product_id > products.id
+
+// Messages relationships
+Ref: messages.conversation_id > conversations.id [delete: cascade]
+Ref: messages.sender_id > users.id

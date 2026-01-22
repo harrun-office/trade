@@ -410,6 +410,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       isVerified: true
     };
     setUser(mockUser);
+    localStorage.setItem('user', JSON.stringify(mockUser));
     return true;
   };
 
