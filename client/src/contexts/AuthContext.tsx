@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { login as apiLogin, getMe as apiGetMe, logout as apiLogout, register as apiRegister } from '../api/client';
+import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
+import { login as apiLogin, getMe as apiGetMe, logout as apiLogout, register as apiRegister, getAllProducts as apiGetAllProducts } from '../api/client';
 
 // Define interfaces
 interface User {
@@ -131,6 +131,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
+  
+  // DIAGNOSTIC: Log when allProducts state changes
+  useEffect(() => {
+    console.log('[DIAGNOSTIC] allProducts state CHANGED - new length:', allProducts.length);
+    console.log('[DIAGNOSTIC] allProducts state CHANGED - new reference:', allProducts);
+    console.log('[DIAGNOSTIC] allProducts state CHANGED - timestamp:', new Date().toISOString());
+    if (allProducts.length > 0) {
+      console.log('[DIAGNOSTIC] allProducts state CHANGED - first product ID:', allProducts[0].id);
+      console.log('[DIAGNOSTIC] allProducts state CHANGED - first product images:', allProducts[0].images);
+    }
+  }, [allProducts]);
   const [requiresVerification, setRequiresVerification] = useState(false);
 
   // Initialize data from localStorage and check authentication
@@ -141,7 +152,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const savedReviews = localStorage.getItem('userReviews');
     const savedCart = localStorage.getItem('cart');
     const savedWishlist = localStorage.getItem('wishlist');
-    const savedGlobalProducts = localStorage.getItem('globalProducts');
     const token = localStorage.getItem('auth_token');
 
     // If we have a token but no user data, try to fetch user data
@@ -164,227 +174,56 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (savedReviews) setReviews(JSON.parse(savedReviews));
     if (savedCart) setCart(JSON.parse(savedCart));
     if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
-    
-    // Load global products or initialize with default data
-    if (savedGlobalProducts) {
-      setAllProducts(JSON.parse(savedGlobalProducts));
-    } else {
-      // Initialize with default products
-      const defaultProducts: Product[] = [
-        {
-          id: 1,
-          title: 'MacBook Pro 2023',
-          price: 1899,
-          originalPrice: 2199,
-          images: ['https://images.pexels.com/photos/205421/pexels-photo-205421.jpeg?auto=compress&cs=tinysrgb&w=800'],
-          description: 'Excellent condition MacBook Pro with M2 chip, 16GB RAM, 512GB SSD. Perfect for professionals and students.',
-          category: 'Electronics',
-          condition: 'Like New',
-          charity: 'Education for All',
-          donationPercent: 10,
-          seller: 'TechDeals',
-          sellerId: 'seller_1',
-          location: 'San Francisco, CA',
-          specifications: ['M2 Chip', '16GB RAM', '512GB SSD', '13-inch Display'],
-          shipping: {
-            cost: 'Free shipping',
-            time: '2-3 business days',
-            protection: 'Full buyer protection'
-          },
-          postedDate: '2025-01-08',
-          status: 'active'
-        },
-        {
-          id: 2,
-          title: 'Vintage Leather Sofa',
-          price: 450,
-          originalPrice: 800,
-          images: ['https://images.pexels.com/photos/1866149/pexels-photo-1866149.jpeg?auto=compress&cs=tinysrgb&w=800'],
-          description: 'Beautiful vintage leather sofa in excellent condition. Comfortable and stylish, perfect for any living room.',
-          category: 'Furniture',
-          condition: 'Excellent',
-          charity: 'Habitat for Humanity',
-          donationPercent: 15,
-          seller: 'FurnitureLovers',
-          sellerId: 'seller_2',
-          location: 'Los Angeles, CA',
-          specifications: ['Genuine Leather', '3-Seater', 'Brown Color'],
-          shipping: {
-            cost: '$50 shipping',
-            time: '5-7 business days',
-            protection: 'Full buyer protection'
-          },
-          postedDate: '2025-01-07',
-          status: 'active'
-        },
-        {
-          id: 3,
-          title: 'Designer Winter Coat',
-          price: 120,
-          originalPrice: 300,
-          images: ['https://images.pexels.com/photos/1021693/pexels-photo-1021693.jpeg?auto=compress&cs=tinysrgb&w=800'],
-          description: 'Stylish designer winter coat, size M. Warm and fashionable, perfect for cold weather.',
-          category: 'Clothing',
-          condition: 'Good',
-          charity: 'Warmth for All',
-          donationPercent: 20,
-          seller: 'FashionForward',
-          sellerId: 'seller_3',
-          location: 'New York, NY',
-          specifications: ['Size M', 'Water Resistant', 'Down Filled'],
-          shipping: {
-            cost: 'Free shipping',
-            time: '3-5 business days',
-            protection: 'Full buyer protection'
-          },
-          postedDate: '2025-01-06',
-          status: 'active'
-        },
-        {
-          id: 4,
-          title: 'Professional Camera Kit',
-          price: 650,
-          originalPrice: 900,
-          images: ['https://images.pexels.com/photos/90946/pexels-photo-90946.jpeg?auto=compress&cs=tinysrgb&w=800'],
-          description: 'Complete camera kit with lenses and accessories. Perfect for photography enthusiasts.',
-          category: 'Electronics',
-          condition: 'Excellent',
-          charity: 'Arts Education',
-          donationPercent: 12,
-          seller: 'PhotoPro',
-          sellerId: 'seller_4',
-          location: 'Chicago, IL',
-          specifications: ['DSLR Camera', '2 Lenses', 'Tripod', 'Camera Bag'],
-          shipping: {
-            cost: 'Free shipping',
-            time: '2-4 business days',
-            protection: 'Full buyer protection'
-          },
-          postedDate: '2025-01-05',
-          status: 'active'
-        },
-        {
-          id: 5,
-          title: 'Gaming Setup Complete',
-          price: 1200,
-          originalPrice: 1800,
-          images: ['https://images.pexels.com/photos/2047905/pexels-photo-2047905.jpeg?auto=compress&cs=tinysrgb&w=800'],
-          description: 'Complete gaming setup with high-end PC, monitor, keyboard, and mouse. Ready to game!',
-          category: 'Electronics',
-          condition: 'Like New',
-          charity: 'Tech for Kids',
-          donationPercent: 8,
-          seller: 'GamerHub',
-          sellerId: 'seller_5',
-          location: 'Austin, TX',
-          specifications: ['Gaming PC', '27" Monitor', 'Mechanical Keyboard', 'Gaming Mouse'],
-          shipping: {
-            cost: '$75 shipping',
-            time: '5-7 business days',
-            protection: 'Full buyer protection'
-          },
-          postedDate: '2025-01-04',
-          status: 'active'
-        },
-        {
-          id: 6,
-          title: 'Acoustic Guitar',
-          price: 280,
-          originalPrice: 450,
-          images: ['https://images.pexels.com/photos/1407322/pexels-photo-1407322.jpeg?auto=compress&cs=tinysrgb&w=800'],
-          description: 'Beautiful acoustic guitar in great condition. Perfect for beginners and experienced players.',
-          category: 'Sports',
-          condition: 'Good',
-          charity: 'Arts Education',
-          donationPercent: 18,
-          seller: 'MusicMaker',
-          sellerId: 'seller_6',
-          location: 'Nashville, TN',
-          specifications: ['Steel Strings', 'Spruce Top', 'Mahogany Back'],
-          shipping: {
-            cost: '$25 shipping',
-            time: '3-5 business days',
-            protection: 'Full buyer protection'
-          },
-          postedDate: '2025-01-03',
-          status: 'active'
-        },
-        {
-          id: 7,
-          title: 'Dining Table Set',
-          price: 350,
-          originalPrice: 600,
-          images: ['https://images.pexels.com/photos/1080721/pexels-photo-1080721.jpeg?auto=compress&cs=tinysrgb&w=800'],
-          description: 'Solid wood dining table with 4 chairs. Perfect for family meals and entertaining.',
-          category: 'Furniture',
-          condition: 'Good',
-          charity: 'Habitat for Humanity',
-          donationPercent: 12,
-          seller: 'HomeDecor',
-          sellerId: 'seller_7',
-          location: 'Denver, CO',
-          specifications: ['Solid Wood', '4 Chairs Included', 'Seats 6 People'],
-          shipping: {
-            cost: '$100 shipping',
-            time: '7-10 business days',
-            protection: 'Full buyer protection'
-          },
-          postedDate: '2025-01-02',
-          status: 'active'
-        },
-        {
-          id: 8,
-          title: 'Designer Handbag',
-          price: 180,
-          originalPrice: 350,
-          images: ['https://images.pexels.com/photos/1152077/pexels-photo-1152077.jpeg?auto=compress&cs=tinysrgb&w=800'],
-          description: 'Authentic designer handbag in excellent condition. Stylish and practical.',
-          category: 'Clothing',
-          condition: 'Excellent',
-          charity: 'Warmth for All',
-          donationPercent: 15,
-          seller: 'LuxuryFinds',
-          sellerId: 'seller_8',
-          location: 'Miami, FL',
-          specifications: ['Genuine Leather', 'Multiple Compartments', 'Adjustable Strap'],
-          shipping: {
-            cost: 'Free shipping',
-            time: '2-3 business days',
-            protection: 'Full buyer protection'
-          },
-          postedDate: '2025-01-01',
-          status: 'active'
-        }
-      ];
-      setAllProducts(defaultProducts);
-      localStorage.setItem('globalProducts', JSON.stringify(defaultProducts));
-    }
   }, []);
 
-  // Listen for changes to globalProducts from admin actions
+  // Load products ONCE on mount - no localStorage, no updates, no listeners
   useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'globalProducts' && e.newValue) {
-        const updatedProducts = JSON.parse(e.newValue);
-        setAllProducts(updatedProducts);
+    console.log('[DIAGNOSTIC] loadProducts useEffect RUNNING at:', new Date().toISOString());
+    const loadProducts = async () => {
+      try {
+        console.log('[DIAGNOSTIC] loadProducts - Fetching from API...');
+        const apiProducts = await apiGetAllProducts();
+        console.log('[DIAGNOSTIC] loadProducts - Received', apiProducts.length, 'products from API');
+
+        // Transform backend product shape to frontend shape
+        const transformedProducts: Product[] = apiProducts.map(apiProduct => ({
+          id: apiProduct.id,
+          title: apiProduct.title,
+          price: Number(apiProduct.price),
+          images: apiProduct.product_images
+            .sort((a, b) => a.position - b.position)
+            .map(img => img.image_url),
+          description: apiProduct.description || '',
+          category: apiProduct.category?.name || 'Uncategorized',
+          condition: apiProduct.condition || 'Used',
+          charity: apiProduct.charity?.name || '',
+          donationPercent: Number(apiProduct.donation_percent) || 0,
+          seller: apiProduct.seller?.username || 'Unknown Seller',
+          sellerId: apiProduct.seller?.id || '',
+          location: 'Remote',
+          specifications: [],
+          shipping: {
+            cost: 'Contact seller',
+            time: 'Varies',
+            protection: 'Seller protection'
+          },
+          postedDate: apiProduct.created_at ? new Date(apiProduct.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          status: apiProduct.status as 'active' | 'pending' | 'rejected' | 'sold',
+        }));
+
+        console.log('[DIAGNOSTIC] loadProducts - About to call setAllProducts with', transformedProducts.length, 'products');
+        console.log('[DIAGNOSTIC] loadProducts - First product images:', transformedProducts[0]?.images);
+        // Set products ONCE - no localStorage, no comparison, no refs
+        setAllProducts(transformedProducts);
+        console.log('[DIAGNOSTIC] loadProducts - setAllProducts called');
+      } catch (error) {
+        console.error('[DIAGNOSTIC] loadProducts - Failed to fetch products from API:', error);
+        // Set empty array on error - no fallbacks
+        setAllProducts([]);
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Also check for updates periodically (for same-tab updates)
-    const interval = setInterval(() => {
-      const currentProducts = localStorage.getItem('globalProducts');
-      if (currentProducts) {
-        const parsedProducts = JSON.parse(currentProducts);
-        setAllProducts(parsedProducts);
-      }
-    }, 1000);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
-    };
+    loadProducts();
   }, []);
 
   // Save data to localStorage whenever it changes
@@ -412,11 +251,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     localStorage.setItem('wishlist', JSON.stringify(wishlist));
   }, [wishlist]);
-
-  // Save allProducts to globalProducts in localStorage
-  useEffect(() => {
-    localStorage.setItem('globalProducts', JSON.stringify(allProducts));
-  }, [allProducts]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -569,24 +403,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUserListings(userListings.map(product =>
       product.id === productId ? { ...product, ...updates } : product
     ));
-    
-    // Also update in global products if it exists there
-    const currentGlobalProducts = JSON.parse(localStorage.getItem('globalProducts') || '[]');
-    const updatedGlobalProducts = currentGlobalProducts.map((product: Product) =>
-      product.id === productId ? { ...product, ...updates } : product
-    );
-    localStorage.setItem('globalProducts', JSON.stringify(updatedGlobalProducts));
-    setAllProducts(updatedGlobalProducts);
+    // Products are read-only - no updates to allProducts
   };
 
   const deleteListing = (productId: number) => {
     setUserListings(userListings.filter(product => product.id !== productId));
-    
-    // Also remove from global products
-    const currentGlobalProducts = JSON.parse(localStorage.getItem('globalProducts') || '[]');
-    const updatedGlobalProducts = currentGlobalProducts.filter((product: Product) => product.id !== productId);
-    localStorage.setItem('globalProducts', JSON.stringify(updatedGlobalProducts));
-    setAllProducts(updatedGlobalProducts);
+    // Products are read-only - no updates to allProducts
   };
 
   const markProductAsSold = (productId: number) => {
@@ -607,7 +429,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setReviews([...reviews, { ...review, id: Date.now().toString() }]);
   };
 
-  const value = {
+  // Memoize the context value to prevent unnecessary re-renders
+  // Only recreate when actual state values change, not when functions are recreated
+  // Functions are stable in behavior (they don't change their logic), so we exclude them from deps
+  const value = useMemo(() => ({
     user,
     cart,
     wishlist,
@@ -635,7 +460,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     isAuthenticated: !!user,
     requiresVerification,
     setRequiresVerification
-  };
+  }), [
+    // Only include state values that actually change
+    user,
+    cart,
+    wishlist,
+    userListings,
+    purchases,
+    reviews,
+    allProducts,
+    requiresVerification
+    // Functions are excluded - they're stable in behavior even if reference changes
+  ]);
+
+  // DIAGNOSTIC: Log when provider value is created
+  console.log('[DIAGNOSTIC] AuthContext Provider render - allProducts length:', allProducts.length);
+  console.log('[DIAGNOSTIC] AuthContext Provider render - allProducts reference:', allProducts);
+  console.log('[DIAGNOSTIC] AuthContext Provider render - value object created at:', new Date().toISOString());
+  console.log('[DIAGNOSTIC] AuthContext Provider render - value.allProducts reference:', value.allProducts);
+  console.log('[DIAGNOSTIC] AuthContext Provider render - value.allProducts === allProducts:', value.allProducts === allProducts);
 
   return (
     <AuthContext.Provider value={value}>

@@ -96,6 +96,21 @@ export async function register(email: string, username: string, password: string
 }
 
 /**
+ * Get all products
+ * @returns Promise<Product[]> - Array of all products
+ */
+export async function getAllProducts() {
+  const response = await apiClient('/products');
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to fetch products');
+  }
+
+  return response.json();
+}
+
+/**
  * Logout user by removing token
  */
 export function logout() {

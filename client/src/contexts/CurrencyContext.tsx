@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
 
 interface Currency {
   code: string;
@@ -18,6 +18,19 @@ interface CurrencyContextType {
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
+// Available currencies with exchange rates (in real app, these would come from API)
+// Moved outside component to prevent recreation on every render
+const CURRENCIES: Currency[] = [
+  { code: 'USD', name: 'US Dollar', symbol: '$', exchangeRate: 1.0, country: 'United States' },
+  { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$', exchangeRate: 1.35, country: 'Canada' },
+  { code: 'GBP', name: 'British Pound', symbol: '£', exchangeRate: 0.79, country: 'United Kingdom' },
+  { code: 'EUR', name: 'Euro', symbol: '€', exchangeRate: 0.92, country: 'European Union' },
+  { code: 'AUD', name: 'Australian Dollar', symbol: 'A$', exchangeRate: 1.52, country: 'Australia' },
+  { code: 'JPY', name: 'Japanese Yen', symbol: '¥', exchangeRate: 149.50, country: 'Japan' },
+  { code: 'MYR', name: 'Malaysian Ringgit', symbol: 'RM', exchangeRate: 4.72, country: 'Malaysia' },
+  { code: 'SGD', name: 'Singapore Dollar', symbol: 'S$', exchangeRate: 1.34, country: 'Singapore' }
+];
+
 export const useCurrency = () => {
   const context = useContext(CurrencyContext);
   if (context === undefined) {
@@ -27,44 +40,33 @@ export const useCurrency = () => {
 };
 
 export const CurrencyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Available currencies with exchange rates (in real app, these would come from API)
-  const currencies: Currency[] = [
-    { code: 'USD', name: 'US Dollar', symbol: '$', exchangeRate: 1.0, country: 'United States' },
-    { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$', exchangeRate: 1.35, country: 'Canada' },
-    { code: 'GBP', name: 'British Pound', symbol: '£', exchangeRate: 0.79, country: 'United Kingdom' },
-    { code: 'EUR', name: 'Euro', symbol: '€', exchangeRate: 0.92, country: 'European Union' },
-    { code: 'AUD', name: 'Australian Dollar', symbol: 'A$', exchangeRate: 1.52, country: 'Australia' },
-    { code: 'JPY', name: 'Japanese Yen', symbol: '¥', exchangeRate: 149.50, country: 'Japan' },
-    { code: 'MYR', name: 'Malaysian Ringgit', symbol: 'RM', exchangeRate: 4.72, country: 'Malaysia' },
-    { code: 'SGD', name: 'Singapore Dollar', symbol: 'S$', exchangeRate: 1.34, country: 'Singapore' }
-  ];
 
-  const [selectedCurrency, setSelectedCurrency] = useState<Currency>(currencies[0]); // Default to USD
+  const [selectedCurrency, setSelectedCurrency] = useState<Currency>(CURRENCIES[0]); // Default to USD
 
   // Load saved currency preference
   useEffect(() => {
     const savedCurrency = localStorage.getItem('selectedCurrency');
     if (savedCurrency) {
-      const currency = currencies.find(c => c.code === savedCurrency);
+      const currency = CURRENCIES.find(c => c.code === savedCurrency);
       if (currency) {
         setSelectedCurrency(currency);
       }
     }
   }, []);
 
-  const changeCurrency = (currencyCode: string) => {
-    const currency = currencies.find(c => c.code === currencyCode);
+  const changeCurrency = useCallback((currencyCode: string) => {
+    const currency = CURRENCIES.find(c => c.code === currencyCode);
     if (currency) {
       setSelectedCurrency(currency);
       localStorage.setItem('selectedCurrency', currencyCode);
     }
-  };
+  }, []);
 
-  const convertPrice = (price: number): number => {
+  const convertPrice = useCallback((price: number): number => {
     return price * selectedCurrency.exchangeRate;
-  };
+  }, [selectedCurrency.exchangeRate]);
 
-  const formatPrice = (price: number): string => {
+  const formatPrice = useCallback((price: number): string => {
     const convertedPrice = convertPrice(price);
     
     // Format based on currency
@@ -73,15 +75,16 @@ export const CurrencyProvider: React.FC<{ children: ReactNode }> = ({ children }
     } else {
       return `${selectedCurrency.symbol}${convertedPrice.toFixed(2)}`;
     }
-  };
+  }, [selectedCurrency.code, selectedCurrency.symbol, convertPrice]);
 
-  const value = {
+  // Memoize context value to prevent unnecessary re-renders
+  const value = useMemo(() => ({
     selectedCurrency,
-    currencies,
+    currencies: CURRENCIES,
     changeCurrency,
     convertPrice,
     formatPrice
-  };
+  }), [selectedCurrency, changeCurrency, convertPrice, formatPrice]);
 
   return (
     <CurrencyContext.Provider value={value}>

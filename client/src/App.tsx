@@ -1,11 +1,5 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import { AdminProvider } from './contexts/AdminContext';
-import { ChatProvider } from './contexts/ChatContext';
-import { ThemeProvider } from './contexts/ThemeContext';
-import { EscrowProvider } from './contexts/EscrowContext';
-import { CurrencyProvider } from './contexts/CurrencyContext';
 import ScrollToTop from './components/ScrollToTop';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -72,22 +66,10 @@ const AppContent: React.FC = () => {
 
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <AdminProvider>
-          <ChatProvider>
-            <EscrowProvider>
-              <CurrencyProvider>
-                <Router>
-                  <ScrollToTop />
-                  <AppContent />
-                </Router>
-              </CurrencyProvider>
-            </EscrowProvider>
-          </ChatProvider>
-        </AdminProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <Router>
+      <ScrollToTop />
+      <AppContent />
+    </Router>
   );
 }
 

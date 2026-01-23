@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
 
 interface Admin {
   id: string;
@@ -598,7 +598,9 @@ export const AdminProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     pendingApprovals: pendingItems.filter(item => item.status === 'pending').length
   });
 
-  const value = {
+  // Memoize context value to prevent unnecessary re-renders
+  // Only recreate when state values change, not when functions are recreated
+  const value = useMemo(() => ({
     admin,
     categories,
     charities,
@@ -620,7 +622,15 @@ export const AdminProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     deleteCarouselSlide,
     reorderCarouselSlides,
     getStats
-  };
+  }), [
+    // Only include state values that actually change
+    admin,
+    categories,
+    charities,
+    pendingItems,
+    carouselSlides
+    // Functions are excluded - they're stable in behavior even if reference changes
+  ]);
 
   return (
     <AdminContext.Provider value={value}>

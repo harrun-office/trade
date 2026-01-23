@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, memo } from 'react';
 import { Link } from 'react-router-dom';
 
 // Add custom animations
@@ -48,6 +48,11 @@ const HomePage: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [heroLoaded, setHeroLoaded] = useState(false);
   const [statsAnimated, setStatsAnimated] = useState(false);
+
+  // DIAGNOSTIC: Log Home page renders
+  console.log('[DIAGNOSTIC] HomePage RENDER - timestamp:', new Date().toISOString());
+  console.log('[DIAGNOSTIC] HomePage RENDER - allProducts length:', allProducts.length);
+  console.log('[DIAGNOSTIC] HomePage RENDER - allProducts reference:', allProducts);
 
   // Calculate real donation counter based on actual data
   const mockSalesData = [
@@ -462,28 +467,49 @@ const HomePage: React.FC = () => {
     }
   };
 
-  // Get active products from global products
-  const activeProducts = allProducts.filter(product => product.status === 'active');
+  // Memoize filtered products to prevent unnecessary recalculations
+  const activeProducts = useMemo(() => 
+    allProducts.filter(product => product.status === 'active'),
+    [allProducts]
+  );
+  console.log('[DIAGNOSTIC] HomePage - activeProducts length:', activeProducts.length);
 
   // Premium Electronics Row - filter from active products
-  const premiumElectronics = activeProducts
-    .filter(product => product.category.toLowerCase() === 'electronics')
-    .slice(0, 6);
+  const premiumElectronics = useMemo(() => 
+    activeProducts
+      .filter(product => product.category.toLowerCase() === 'electronics')
+      .slice(0, 6),
+    [activeProducts]
+  );
+  console.log('[DIAGNOSTIC] HomePage - premiumElectronics length:', premiumElectronics.length);
+  if (premiumElectronics.length > 0) {
+    console.log('[DIAGNOSTIC] HomePage - premiumElectronics[0] ID:', premiumElectronics[0].id);
+    console.log('[DIAGNOSTIC] HomePage - premiumElectronics[0] images:', premiumElectronics[0].images);
+  }
 
   // Fashion & Lifestyle Row - filter from active products
-  const fashionLifestyle = activeProducts
-    .filter(product => product.category.toLowerCase() === 'clothing')
-    .slice(0, 6);
+  const fashionLifestyle = useMemo(() => 
+    activeProducts
+      .filter(product => product.category.toLowerCase() === 'clothing')
+      .slice(0, 6),
+    [activeProducts]
+  );
 
   // Home & Furniture Row - filter from active products
-  const homeFurniture = activeProducts
-    .filter(product => product.category.toLowerCase() === 'furniture')
-    .slice(0, 6);
+  const homeFurniture = useMemo(() => 
+    activeProducts
+      .filter(product => product.category.toLowerCase() === 'furniture')
+      .slice(0, 6),
+    [activeProducts]
+  );
 
   // Sports & Hobbies Row - filter from active products
-  const sportsHobbies = activeProducts
-    .filter(product => product.category.toLowerCase() === 'sports')
-    .slice(0, 6);
+  const sportsHobbies = useMemo(() => 
+    activeProducts
+      .filter(product => product.category.toLowerCase() === 'sports')
+      .slice(0, 6),
+    [activeProducts]
+  );
 
   // Calculate real category counts
   const categoryCounts = activeProducts.reduce((acc, product) => {
@@ -625,9 +651,16 @@ const HomePage: React.FC = () => {
     }
   ];
 
-  const ProductCard = ({ product, badge }: { product: any, badge?: string }) => {
+  // Memoize ProductCard to prevent unnecessary re-renders when product data hasn't changed
+  const ProductCard = memo(({ product, badge }: { product: any, badge?: string }) => {
     const [imageLoaded, setImageLoaded] = useState(false);
     const [imageError, setImageError] = useState(false);
+
+    // DIAGNOSTIC: Log ProductCard renders
+    console.log('[DIAGNOSTIC] ProductCard RENDER - product ID:', product.id);
+    console.log('[DIAGNOSTIC] ProductCard RENDER - product images:', product.images);
+    console.log('[DIAGNOSTIC] ProductCard RENDER - image src:', product.images[0]);
+    console.log('[DIAGNOSTIC] ProductCard RENDER - timestamp:', new Date().toISOString());
 
     return (
       <Link
@@ -668,8 +701,14 @@ const HomePage: React.FC = () => {
               className={`w-full h-full object-cover group-hover:scale-110 transition-all duration-700 ${
                 imageLoaded ? 'opacity-100' : 'opacity-0'
               }`}
-              onLoad={() => setImageLoaded(true)}
-              onError={() => setImageError(true)}
+              onLoad={() => {
+                console.log('[DIAGNOSTIC] ProductCard IMAGE onLoad - product ID:', product.id, 'src:', product.images[0]);
+                setImageLoaded(true);
+              }}
+              onError={() => {
+                console.log('[DIAGNOSTIC] ProductCard IMAGE onError - product ID:', product.id, 'src:', product.images[0]);
+                setImageError(true);
+              }}
               loading="lazy"
             />
           )}
@@ -718,7 +757,17 @@ const HomePage: React.FC = () => {
         <div className="absolute inset-0 rounded-2xl ring-2 ring-indigo-500/20 ring-offset-2 ring-offset-white dark:ring-offset-slate-800 opacity-0 focus-within:opacity-100 transition-opacity"></div>
       </Link>
     );
-  };
+  }, (prevProps, nextProps) => {
+    // Custom comparison: skip re-render if product data is the same
+    // Return true to skip re-render, false to re-render
+    return (
+      prevProps.product.id === nextProps.product.id &&
+      prevProps.product.images[0] === nextProps.product.images[0] &&
+      prevProps.product.price === nextProps.product.price &&
+      prevProps.product.title === nextProps.product.title &&
+      prevProps.badge === nextProps.badge
+    );
+  });
 
   return (
     <>
@@ -1093,15 +1142,18 @@ const HomePage: React.FC = () => {
 
           {/* Premium product showcase */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5 mb-8">
-            {premiumElectronics.map((product, index) => (
-              <div
-                key={product.id}
-                className={`${heroLoaded ? 'animate-fade-in-up' : 'opacity-0 translate-y-8'}`}
-                style={{ animationDelay: `${index * 150 + 1000}ms` }}
-              >
-                <ProductCard product={product} />
-              </div>
-            ))}
+            {premiumElectronics.map((product, index) => {
+              console.log('[DIAGNOSTIC] HomePage - Mapping product to ProductCard - ID:', product.id, 'key:', product.id, 'index:', index);
+              return (
+                <div
+                  key={product.id}
+                  className={`${heroLoaded ? 'animate-fade-in-up' : 'opacity-0 translate-y-8'}`}
+                  style={{ animationDelay: `${index * 150 + 1000}ms` }}
+                >
+                  <ProductCard product={product} />
+                </div>
+              );
+            })}
           </div>
 
           {/* Luxury section metrics */}
