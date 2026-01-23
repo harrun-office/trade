@@ -75,6 +75,27 @@ export async function getMe() {
 }
 
 /**
+ * Register a new user
+ * @param email - User's email
+ * @param username - User's username
+ * @param password - User's password
+ * @returns Promise<User> - Created user data
+ */
+export async function register(email: string, username: string, password: string) {
+  const response = await apiClient('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ email, username, password }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Registration failed');
+  }
+
+  return response.json();
+}
+
+/**
  * Logout user by removing token
  */
 export function logout() {

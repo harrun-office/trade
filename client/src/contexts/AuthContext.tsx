@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { login as apiLogin, getMe as apiGetMe, logout as apiLogout } from '../api/client';
+import { login as apiLogin, getMe as apiGetMe, logout as apiLogout, register as apiRegister } from '../api/client';
 
 // Define interfaces
 interface User {
@@ -436,17 +436,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const signup = async (email: string, password: string, name: string): Promise<boolean> => {
-    // Mock signup logic
-    const mockUser: User = {
-      id: Date.now().toString(),
-      email,
-      username: name,
-      isVerified: false
-    };
-    setUser(mockUser);
-    setRequiresVerification(true);
-    return true;
+  const signup = async (formData: { email: string; username: string; password: string }): Promise<boolean> => {
+    try {
+      // Call API to register user
+      await apiRegister(formData.email, formData.username, formData.password);
+
+      // Registration successful, set verification required
+      setRequiresVerification(true);
+      return true;
+    } catch (error) {
+      console.error('Registration failed:', error);
+      return false;
+    }
   };
 
   const logout = () => {

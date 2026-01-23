@@ -114,7 +114,7 @@ const Signup: React.FC = () => {
     try {
       const success = await signup(formData);
       if (success) {
-        navigate('/verify');
+        navigate('/login');
       } else {
         setError('Signup failed. Please try again.');
       }
