@@ -388,10 +388,37 @@ export const AdminProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     // Also check for updates periodically (for same-tab updates)
     const interval = setInterval(() => {
       const currentItems = localStorage.getItem('adminPendingItems');
-      if (currentItems) {
-        const parsedItems = JSON.parse(currentItems);
-        setPendingItems(parsedItems);
+      if (!currentItems) {
+        return;
       }
+
+      const parsedItems: PendingItem[] = JSON.parse(currentItems);
+
+      setPendingItems(prevItems => {
+        // If nothing meaningfully changed, bail out to avoid re-renders
+        if (
+          prevItems.length === parsedItems.length &&
+          prevItems.every((item, index) => {
+            const next = parsedItems[index];
+            return (
+              item.id === next.id &&
+              item.status === next.status &&
+              item.price === next.price &&
+              item.donationPercent === next.donationPercent
+            );
+          })
+        ) {
+          return prevItems;
+        }
+
+        // SINGLE diagnostic log at the actual state change trigger
+        console.log(
+          '[DIAGNOSTIC] AdminContext interval updating pendingItems at',
+          new Date().toISOString()
+        );
+
+        return parsedItems;
+      });
     }, 1000);
 
     return () => {

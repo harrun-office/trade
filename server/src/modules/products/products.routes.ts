@@ -1,8 +1,11 @@
 import { Router } from 'express';
-import { getAllProducts, getProductById } from './products.controller';
+import { getAllProducts, getProductById, createProduct } from './products.controller';
+import { authMiddleware } from '../../middlewares/auth.middleware';
 
 /**
- * Product routes - public endpoints for reading products
+ * Product routes
+ * - Public endpoints for reading products
+ * - Protected endpoint for creating products
  */
 const router = Router();
 
@@ -10,4 +13,7 @@ const router = Router();
 router.get('/', getAllProducts);
 router.get('/:id', getProductById);
 
-export default router;
+// Protected route - authentication required
+router.post('/', authMiddleware, createProduct);
+
+export { router as default };

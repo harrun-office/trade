@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode, useRef } from 'react';
 import { login as apiLogin, getMe as apiGetMe, logout as apiLogout, register as apiRegister, getAllProducts as apiGetAllProducts } from '../api/client';
 
 // Define interfaces
@@ -176,8 +176,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
   }, []);
 
-  // Load products ONCE on mount - no localStorage, no updates, no listeners
+  // Load products ONCE per app lifetime - no localStorage, no updates, no listeners
   useEffect(() => {
+    // Guard against unexpected re-runs (e.g. remounts) so we only ever load once
+    const hasLoadedRef = (AuthProvider as any)._hasLoadedProductsRef as React.MutableRefObject<boolean> | undefined;
+    let loadedFlag = hasLoadedRef;
+
+    if (!loadedFlag) {
+      // Initialize a shared ref on the component function so all instances share it
+      loadedFlag = React.createRef<boolean>() as React.MutableRefObject<boolean>;
+      loadedFlag.current = false;
+      (AuthProvider as any)._hasLoadedProductsRef = loadedFlag;
+    }
+
+    if (loadedFlag.current) {
+      // Already loaded products once; skip re-fetch and state update
+      return;
+    }
+
+    loadedFlag.current = true;
+
     console.log('[DIAGNOSTIC] loadProducts useEffect RUNNING at:', new Date().toISOString());
     const loadProducts = async () => {
       try {

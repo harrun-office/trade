@@ -7,6 +7,7 @@ import { Pool } from 'pg';
 import authRoutes from './modules/auth/auth.routes';
 import userRoutes from './modules/users/users.routes';
 import productRoutes from './modules/products/products.routes';
+import adminRoutes from './modules/admin/admin.products.routes';
 
 // Load environment variables
 dotenv.config();
@@ -36,6 +37,9 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/admin', adminRoutes);
+
+// Basic health check
 
 // Basic health check
 app.get('/api/health', (req, res) => {
@@ -101,6 +105,7 @@ app.listen(PORT, () => {
   console.log(`🚀 Trade2Help API server running on port ${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
   console.log(`🗄️  Database test: http://localhost:${PORT}/api/test-db`);
+  console.log(`📦 Routes registered:`, app._router?.stack?.length || 'unknown');
   console.log(`📝 Database URL: ${process.env.DATABASE_URL}`);
 });
 
